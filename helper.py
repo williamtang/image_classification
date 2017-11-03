@@ -16,7 +16,7 @@ def load_cfar10_batch(cifar10_dataset_folder_path, batch_id):
     Load a batch of the dataset
     """
     with open(cifar10_dataset_folder_path + '/data_batch_' + str(batch_id), mode='rb') as file:
-        batch = pickle.load(file)
+        batch = pickle.load(file, encoding='latin1')
 
     features = batch['data'].reshape((len(batch['data']), 3, 32, 32)).transpose(0, 2, 3, 1)
     labels = batch['labels']
@@ -100,7 +100,7 @@ def preprocess_and_save_data(cifar10_dataset_folder_path, normalize, one_hot_enc
         'preprocess_validation.p')
 
     with open(cifar10_dataset_folder_path + '/test_batch', mode='rb') as file:
-        batch = pickle.load(file)
+        batch = pickle.load(file, encoding='latin1')
 
     # load the training data
     test_features = batch['data'].reshape((len(batch['data']), 3, 32, 32)).transpose(0, 2, 3, 1)
