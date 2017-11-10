@@ -136,11 +136,13 @@ def normalize(x):
     : return: Numpy array of normalize data
     """
     # TODO: Implement Function
-    for idx in range(0, x.shape[0]):
-        min_val = x[idx, :, :].min()
-        max_val = x[idx,:,:].max()
-        x[idx, :, :] = (x[idx, :, :] - min_val)/(max_val - min_val)
-    return x
+    #for idx in range(0, x.shape[0]):
+    #    min_val = x[idx, :, :].min()
+    #    max_val = x[idx,:,:].max()
+    #    x[idx, :, :] = (x[idx, :, :] - min_val)/(max_val - min_val)
+    #return x
+
+    return (x-np.min(x))/(np.max(x)-np.min(x))
 
 
 """
@@ -388,7 +390,8 @@ def conv2d_maxpool(x_tensor, conv_num_outputs, conv_ksize, conv_strides, pool_ks
     """
     # TODO: Implement Function
     initial_w = tf.truncated_normal([conv_ksize[0],conv_ksize[1],x_tensor.shape.as_list()[-1],conv_num_outputs], stddev=0.1)
-    initial_b = tf.constant(0.1, shape=[conv_num_outputs])
+    #initial_b = tf.constant(0.1, shape=[conv_num_outputs])
+    initial_b = tf.zeros(conv_num_outputs)
     
     W = tf.Variable(initial_w)
     b = tf.Variable(initial_b)
@@ -455,7 +458,7 @@ def fully_conn(x_tensor, num_outputs):
     # TODO: Implement Function
     num_weights = x_tensor.shape.as_list()[-1]
     W_fc = tf.Variable(tf.truncated_normal([num_weights, num_outputs], stddev=0.1))
-    b_fc = tf.Variable(tf.constant(0.1, shape=[num_outputs]))
+    b_fc = tf.Variable(tf.zeros(num_outputs))
     fc_data = tf.nn.relu(tf.matmul(x_tensor, W_fc) + b_fc)
     return fc_data
 
@@ -491,7 +494,8 @@ def output(x_tensor, num_outputs):
     num_weights = x_tensor.shape.as_list()[-1]
     W_output = tf.Variable(tf.truncated_normal([num_weights, num_outputs], stddev=0.1))
     b_output = tf.Variable(tf.constant(0.1, shape=[num_outputs]))
-    output_data = tf.nn.relu(tf.matmul(x_tensor, W_output) + b_output)
+    #output_data = tf.nn.relu(tf.matmul(x_tensor, W_output) + b_output)
+    output_data = tf.matmul(x_tensor, W_output) + b_output
     return output_data
 
 
@@ -522,7 +526,7 @@ tests.test_output(output)
 # * 返回呼出结果
 # * 在一个或多个层上使用 [TensorFlow's Dropout](https://www.tensorflow.org/api_docs/python/tf/nn/dropout)，对应的保留概率为 `keep_prob`. 
 
-# In[14]:
+# In[13]:
 
 def conv_net(x, keep_prob):
     """
@@ -535,7 +539,7 @@ def conv_net(x, keep_prob):
     #    Play around with different number of outputs, kernel size and stride
     # Function Definition from Above:
     #    conv2d_maxpool(x_tensor, conv_num_outputs, conv_ksize, conv_strides, pool_ksize, pool_strides)
-    conv_maxpool1 = conv2d_maxpool(x, 64, [5,5], [1,1], [3,3], [2,2])
+    conv_maxpool1 = conv2d_maxpool(x, 32, [5,5], [1,1], [3,3], [2,2])
     conv_maxpool2 = conv2d_maxpool(conv_maxpool1, 64, [5,5], [1,1], [3,3], [2,2])
     
     # TODO: Apply a Flatten Layer
@@ -548,16 +552,18 @@ def conv_net(x, keep_prob):
     #    Play around with different number of outputs
     # Function Definition from Above:
     #   fully_conn(x_tensor, num_outputs)
-    fc1 = fully_conn(x_tensor=flatten_data, num_outputs=10)
-    fc2 = fully_conn(x_tensor=fc1, num_outputs=10)
+    fc1 = fully_conn(x_tensor=flatten_data, num_outputs=512)
+    fc2 = fully_conn(x_tensor=fc1, num_outputs=256)
     #fc3 = fully_conn(x_tensor=fc2, num_outputs=10)
+    
+    dropout_data = tf.nn.dropout(fc2, keep_prob)
     
     
     # TODO: Apply an Output Layer
     #    Set this to the number of classes
     # Function Definition from Above:
     #   output(x_tensor, num_outputs)
-    output_data = output(x_tensor=fc2, num_outputs=10)
+    output_data = output(x_tensor=dropout_data, num_outputs=10)
     
     # TODO: return output
     return output_data
@@ -620,7 +626,7 @@ tests.test_conv_net(conv_net)
 # 
 # 注意：该函数并不要返回某个值，它只对神经网络进行最优化。
 
-# In[15]:
+# In[14]:
 
 def train_neural_network(session, optimizer, keep_probability, feature_batch, label_batch):
     """
@@ -647,7 +653,7 @@ tests.test_train_nn(train_neural_network)
 # 
 # 修改 `print_stats` 函数来打印 loss 值及验证准确率。 使用全局的变量 `valid_features` 及 `valid_labels` 来计算验证准确率。 设定保留概率为 1.0 来计算 loss 值及验证准确率。
 
-# In[16]:
+# In[15]:
 
 def print_stats(session, feature_batch, label_batch, cost, accuracy):
     """
@@ -659,9 +665,9 @@ def print_stats(session, feature_batch, label_batch, cost, accuracy):
     : accuracy: TensorFlow accuracy function
     """
     # TODO: Implement Function
-    loss, acc = session.run([cost,accuracy], feed_dict={x: feature_batch, y: label_batch, keep_prob: 1.0})
-    print('loss: %f' % loss)
-    print('accuracy: %f' % acc)
+    loss_train, acc_train = session.run([cost,accuracy], feed_dict={x: feature_batch, y: label_batch, keep_prob: 1.0})
+    loss_val, acc_val = session.run([cost,accuracy], feed_dict={x: valid_features, y: valid_labels, keep_prob: 1.0})
+    print('\ntrain loss: %f, train accuracy: %f, valid loss: %f, valid accuracy: %f' % (loss_train,acc_train,loss_val,acc_val))
 
 
 # ### Hyperparameters
@@ -685,12 +691,12 @@ def print_stats(session, feature_batch, label_batch, cost, accuracy):
 #  * ...
 # * 设定 `keep_probability` 为在 dropout 过程中保留一个节点的概率。
 
-# In[28]:
+# In[16]:
 
 # TODO: Tune Parameters
-epochs = 1000
-batch_size = 64
-keep_probability = 0.85
+epochs = 30
+batch_size = 128
+keep_probability = 0.75
 
 
 # ### Train on a Single CIFAR-10 Batch
@@ -700,7 +706,7 @@ keep_probability = 0.85
 # 
 # 相比于在所有 CIFAR-10 数据上训练神经网络，我们首先使用一批数据进行训练。这会帮助你在调节模型提高精度的过程中节省时间。当最终的验证精度超过 50% 之后，你就可以前往下一节在所有数据上运行该模型了。
 
-# In[27]:
+# In[25]:
 
 """
 DON'T MODIFY ANYTHING IN THIS CELL
@@ -726,7 +732,7 @@ with tf.Session() as sess:
 # 
 # 因为你在单批 CIFAR-10 数据上已经得到了一个不错的准确率了，那你可以尝试在所有五批数据上进行训练。
 
-# In[23]:
+# In[17]:
 
 """
 DON'T MODIFY ANYTHING IN THIS CELL
@@ -766,7 +772,7 @@ with tf.Session() as sess:
 # 
 # 这部分将在测试数据集上测试你的模型。这边得到的准确率将作为你的最终准确率。你应该得到一个高于 50% 准确率。如果它没有超过 50%，那么你需要继续调整模型架构及参数。
 
-# In[25]:
+# In[18]:
 
 """
 DON'T MODIFY ANYTHING IN THIS CELL
